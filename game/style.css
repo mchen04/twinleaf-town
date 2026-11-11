@@ -1,0 +1,34 @@
+/* Browser shell only. Source framebuffer remains 512 x 768 (two 4:3 screens).
+   Integer 1x/2x CSS sizing where space permits; no crop, stretch or screen gap. */
+:root{color-scheme:dark;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e9edf2;background:#10151b;line-height:1.5}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;min-width:0}
+main{width:100%;max-width:850px;margin:auto;min-width:0}
+header h1{font-size:1.25rem;margin:0;font-weight:650}
+header p{font-size:.875rem;color:#aebac8;margin:.2rem 0}
+p{overflow-wrap:anywhere}
+#boot-status{font-size:.8rem;color:#b9c7d8;margin:.5rem 0}
+.console{width:256px;max-width:100%;margin:16px auto;background:#000;line-height:0}
+#game{display:block;width:100%;height:auto;aspect-ratio:2/3;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;outline-offset:4px}
+@media(min-width:560px) and (min-height:1000px){.console{width:512px}}
+@media(max-width:287px){body{padding:8px}}
+button,input{font:inherit;max-width:100%}
+button{color:#e9edf2;background:#24303e;border:1px solid #536579;border-radius:5px;padding:.5rem .7rem;cursor:pointer;white-space:normal}
+button:hover{background:#34475c}button:disabled{opacity:.55;cursor:not-allowed}
+button:focus-visible,input:focus-visible,summary:focus-visible,#game:focus-visible{outline:3px solid #ffd67a;outline-offset:3px}
+button[aria-pressed=true]{background:#315844}
+[hidden]{display:none!important}
+.controls,.opening-profile-controls,.lighting-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0}
+.opening-profile-controls p,.lighting-controls p{flex-basis:100%;margin:0;font-size:.85rem;color:#b9c7d8}
+#opening-menu-controls{width:100%}
+input{background:#1d2834;color:inherit;border:1px solid #536579;border-radius:5px;padding:.4rem}
+.game-status{font-size:.9rem}.game-status p{margin:.5rem 0}
+.keys,#audio-monitor-note,#record-status{font-size:.8rem;color:#b9c7d8}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+#original-controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+#source-board-controls,#notebook-panel{line-height:1.5;background:#1a2430;border:1px solid #536579;padding:16px;border-radius:6px;overflow-wrap:anywhere}
+.mobile-controls{display:flex;align-items:center;justify-content:center;gap:24px;margin:16px 0}
+.dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,44px);gap:4px}.up{grid-column:2}.left{grid-column:1;grid-row:2}.down{grid-column:2;grid-row:2}.right{grid-column:3;grid-row:2}
+#touch-interact{width:52px;height:52px;border-radius:50%}
+.limitations{font-size:.8rem;color:#aebac8;border-top:1px solid #34475c;padding:12px 0;margin:16px 0}
+summary{cursor:pointer}.progress-track{height:6px;background:#34475c}.progress-track span{display:block;height:100%;background:#82b7df}

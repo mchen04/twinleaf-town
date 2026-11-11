@@ -1,0 +1,16 @@
+/* Partial-component model80 entry. Expected caller draw is mandatory.
+ * Not host-admitted: authentic preset4 renderer/view capability remains pending. */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./source-exit-indicator.js'),require('./source-exit-indicator-data.js'),require('./source-native-bytes.js'));else root.SourceExitIndicatorNative=factory(root.SourceExitIndicator,root.SourceExitIndicatorData,root.SourceNativeBytes);})(typeof globalThis!=='undefined'?globalThis:this,function(Core,Data,Bytes){
+'use strict';
+const entries=new WeakMap(),FX=4096;
+function check(v,m){if(!v)throw Error('h_exit native: '+m);}
+function integer(n,min,max,m){check(Number.isSafeInteger(n)&&!Object.is(n,-0)&&n>=min&&n<=max,m);return n;}
+const resource=Bytes.freeze({vertices:Data.asset.vertices.slice(),material:{...Data.asset.material},topology:Data.asset.topology,texture:{width:16,height:16,data:Data.rgba.slice(),translucent:false,cutout:true}});
+function cardinalMatrix(direction,p){integer(direction,0,3,'cardinal direction');check(Array.isArray(p)&&p.length===3,'signed FX12 translation');const xyz=[];for(let i=0;i<3;i++){const d=Object.getOwnPropertyDescriptor(p,String(i));check(d&&Object.hasOwn(d,'value'),'dense own translation');xyz.push(integer(d.value,-2147483648,2147483647,'signed FX12 translation'));}const [sin,cos]=[[0,-FX],[0,FX],[-FX,0],[FX,0]][direction];return Object.freeze([cos,0,-sin||0,0,0,FX,0,0,sin,0,cos,0,...xyz,FX]);}
+function nativeEntry(descriptor,expected,originalOrder){
+ Core.verifyDescriptor(descriptor,expected);check([412,414,416,417].includes(descriptor.header),'preset4 ground-floor header');integer(originalOrder,0,Number.MAX_SAFE_INTEGER,'source order');const p=descriptor.positionFx12,matrixFx12=cardinalMatrix(descriptor.direction,p);
+ const entry=Bytes.freeze({effect:descriptor,actor:false,key:'fldeff-0080-h-exit',mi:0,bi:0,scale:2,originalOrder,projectionPass:'effects',billboard:false,effectPositionFx12:p,matrix:matrixFx12.map(n=>n/FX),matrixFx12,vertices:resource.vertices,geometryVertices:resource.vertices,texture:resource.texture,textureFormat:2,frame:null,material:resource.material,topology:resource.topology,admissionScope:Core.viewScope});entries.set(entry,{descriptor,expected,resource});return entry;
+}
+function verifyEntry(entry,expected){const r=entries.get(entry);check(r&&r.expected===expected&&entry.effect===r.descriptor,'unadmitted/copied entry or crossed caller expectation');Core.verifyDescriptor(r.descriptor,expected);check(entry.vertices===r.resource.vertices&&entry.geometryVertices===r.resource.vertices&&entry.texture===r.resource.texture&&entry.material===r.resource.material&&entry.topology===r.resource.topology,'changed resource binding');Data.authenticate('h-exit.rgba',Uint8Array.from(entry.texture.data));return true;}
+return Object.freeze({nativeEntry,verifyEntry,cardinalMatrix,hostAdmission:false,limits:Object.freeze(['Exact source model80, embedded16x16 format2, ground quad and cardinal rotations; no billboard.','Expected caller field/draw capability is mandatory, distinct from submitted entry.','Component-only caller camera snapshots; authentic preset4 host-view authority is not implemented.','No host/render/browser/timing or visual parity acceptance.'])});
+});
