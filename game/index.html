@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Twinleaf Town · reference iteration</title><link rel="stylesheet" href="style.css"><script data-boot-inline>
+/* Explicit same-page startup recovery. Dependencies must be pure/replayable; the
+ * entry script must call begin(checks) before side effects. Once begin succeeds,
+ * the entry is never replayed. Host API: setRecovery(async () => { ...; ready(); })
+ * installs an asset/renderer-only retry, without reattaching game listeners.
+ * failed(message) exposes Retry loading; ready() commits successful initialization.
+ * No automatic retries. A callback must finish with ready() or failed(). */
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports={create:factory};else root.TwinleafBoot=factory(root,root.document);})(typeof globalThis!=='undefined'?globalThis:this,function(root,document){
+'use strict';
+const state={phase:'not-started',failures:[],missing:[],message:'',gameStarted:false,retrying:false};
+let recovery=null,wiredButton=null,retryGeneration=0;
+function controls(){const button=document.getElementById('boot-retry');if(!button)return;if(button!==wiredButton){button.addEventListener('click',()=>{void retry();});wiredButton=button;}button.hidden=state.phase!=='blocked'&&!state.retrying;button.disabled=state.retrying;}
+function show(message){state.message=message;const status=document.getElementById('boot-status');if(status){status.hidden=false;status.textContent=message;}const button=document.getElementById('record-button');if(button)button.disabled=true;controls();}
+function failed(message){state.phase='blocked';show('Startup blocked: '+message+' Use Retry loading to try again on this page. No automatic retry occurred.');return false;}
+function begin(checks){if(state.gameStarted){failed('The game bootstrap was invoked more than once.');return false;}state.phase='initializing';state.missing=[];for(const[name,check]of checks){let valid=false;try{valid=Boolean(check(root[name]));}catch(_){}if(!valid)state.missing.push(name);}if(state.missing.length){const files=state.failures.map(f=>f.file).filter(Boolean);return failed('Required dependencies are missing or invalid: '+state.missing.join(', ')+(files.length?'. Reported scripts: '+files.join(', '):'. No script request/execution cause was established'));}state.gameStarted=true;controls();return true;}
+function ready(){if(state.phase!=='initializing')return false;state.phase='ready';state.message='CPU source-mesh preview · fixed preview lighting · fidelity incomplete';const status=document.getElementById('boot-status');if(status){status.textContent=state.message;status.hidden=false;}controls();return true;}
+function setRecovery(fn){if(fn!==null&&typeof fn!=='function')throw new TypeError('Recovery must be a function or null');recovery=fn;}
+function loadScript(src){return new Promise((resolve,reject)=>{const script=document.createElement('script'),failureCount=state.failures.length;script.async=false;script.src=src;function finish(error){script.onload=null;script.onerror=null;if(script.remove)script.remove();if(error)reject(error);else resolve();}script.onload=()=>finish(state.failures.length>failureCount?new Error('Script execution failed while loading '+src):null);script.onerror=()=>finish(new Error('Could not load '+src));document.head.appendChild(script);});}
+function cancelRecovery(){retryGeneration++;state.retrying=false;controls();}
+async function retry(){if(state.retrying||state.phase!=='blocked')return false;const generation=++retryGeneration,owns=()=>retryGeneration===generation;state.retrying=true;state.phase='initializing';show('Retrying local startup assets…');try{if(state.gameStarted){if(!recovery)throw new Error('Game initialization has already started and no safe asset recovery is available. Reload the page');await recovery();if(!owns())return false;if(state.phase==='initializing')throw new Error('Asset recovery did not confirm readiness');}else{const dependencies=Array.from(document.querySelectorAll('script[data-boot-dependency]')),entry=document.querySelector('script[data-boot-entry]');if(!dependencies.length||!entry)throw new Error('The ordered startup script manifest is unavailable');for(const script of dependencies){await loadScript(script.getAttribute('src'));if(!owns())return false;}state.phase='not-started';await loadScript(entry.getAttribute('src'));if(!owns())return false;if(!state.gameStarted&&state.phase!=='blocked')throw new Error('The game entry script did not reach its startup check');}return state.phase!=='blocked';}catch(error){if(owns())failed(error&&error.message||String(error));return false;}finally{if(owns()){state.retrying=false;controls();}}}
+root.addEventListener('error',event=>{const target=event.target,script=target&&String(target.tagName).toUpperCase()==='SCRIPT';if(!script&&!event.filename&&!event.message)return;const file=script?target.src:event.filename||'';state.failures.push({kind:script?'script-resource':'script-execution',file,message:event.message||'Script resource did not load'});if(state.phase==='initializing'&&!state.retrying)failed(event.message||'A required script resource failed to load');},true);
+root.addEventListener('load',()=>{controls();if(state.phase==='not-started')failed('The game entry script did not reach its startup check'+(state.failures.length?'. Reported files: '+state.failures.map(f=>f.file).filter(Boolean).join(', '):'. Cause not established'));});
+return{begin,ready,failed,setRecovery,retry,cancelRecovery,snapshot:()=>JSON.parse(JSON.stringify(state))};
+});
+</script></head>
+<body><main>
+<header><h1>Twinleaf Town</h1><p>My coding harness now · every resident is a Fable 5.2 session</p></header>
+<p id="boot-status" role="status">Loading local source assets…</p>
+<button id="boot-retry" type="button" hidden>Retry loading</button>
+<div id="original-controls" role="group" aria-label="Original dialogue controls" hidden><button id="original-continue" type="button" aria-describedby="dialog-text">Continue dialogue</button><button id="original-close" type="button">Close dialogue</button></div>
+<div id="source-board-controls" role="dialog" aria-modal="true" aria-label="Original sign controls" aria-describedby="source-board-text" tabindex="-1" hidden><p id="source-board-text" aria-live="polite"></p><button id="source-board-close" type="button" disabled>Close sign</button><button id="source-board-menu" type="button" disabled>Open custom task menu</button></div>
+<section class="console" aria-label="Dual-screen game">
+<canvas id="game" width="512" height="768" tabindex="0" aria-label="Dual-screen town game. Move with arrows or WASD. E or Z interacts, B advances original dialogue or cancels mock choices. Escape closes. X opens the mock task menu."></canvas>
+<div class="sr-only" aria-live="polite"><span id="location-name">Twinleaf Town</span><span id="location-note"></span><span id="scene-tag"></span></div>
+<div class="dialog sr-only" id="dialog" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="dialog-name" aria-owns="original-controls" hidden><div id="portrait"></div><span id="dialog-role"></span><h2 id="dialog-name"></h2><button id="dialog-close" aria-label="Close dialogue">Close</button><p id="dialog-text"></p><div id="dialog-actions"></div></div>
+</section>
+<div class="game-status" aria-label="Game interaction and task status"><div id="toast-status"><p id="toast" role="status" aria-live="polite" hidden></p></div><div id="interaction-status"><p id="interaction-hint" role="status" aria-live="polite" hidden><kbd>A / E</kbd>: <span></span></p></div></div>
+<div class="controls"><button id="music-button" aria-pressed="false" aria-describedby="audio-monitor-note">Audio: off</button><button id="menu-button" aria-expanded="false">X · Task menu</button><button id="reset-button">Reset visit</button><button id="record-button" aria-describedby="audio-monitor-note">Record bounded walkthrough</button></div>
+<section class="opening-profile-controls" aria-label="Preview scenario"><button id="opening-profile-start" type="button">Start original-opening scenario</button><button id="tv-origin-start" type="button">Start TV-origin scenario (speakers muted)</button><button id="opening-profile-return" type="button" hidden>Return to default visit</button><button id="opening-profile-restart" type="button" hidden>Restart opening scenario</button><div id="opening-menu-controls" hidden><p id="opening-menu-state" role="status"></p><span>Keyboard adapters:</span> <button id="opening-menu-up" type="button">Up</button> <button id="opening-menu-down" type="button">Down</button> <button id="opening-menu-a" type="button">A</button> <button id="opening-menu-b" type="button">B / Back</button></div><p id="opening-profile-status" role="status">Default preview selected. Optional bounded original-opening scenario; full fidelity unverified.</p></section>
+<section class="lighting-controls" aria-label="Source time-of-day preview"><label for="lighting-time">Fixed source lighting time</label> <input id="lighting-time" type="time" value="12:00" step="60" aria-describedby="lighting-status"> <button id="lighting-apply" type="button">Apply time</button> <button id="lighting-noon" type="button">Noon baseline</button><p id="lighting-status" role="status">12:00 fixed preview · original reference clock unknown</p></section>
+<p id="audio-monitor-note">Live speakers stay muted. Audio controls recorded music and effects; Record enables them automatically.</p>
+<label for="record-destination">Recording destination</label><select id="record-destination"><option value="picker">New empty file (Save File picker)</option><option value="browser">Review buffer, then explicit browser download</option></select><a id="record-download" hidden download="twinleaf-bounded-walkthrough.webm">Download accepted WebM</a>
+<p id="record-status" role="status">Finite export: choose a NEW empty WebM file; up to 4 MiB and 180 seconds. These limits bound the accepted file, not browser temporary storage.</p>
+<p class="keys">Arrows / WASD: move · E / Z / Enter: A (hold to speed text) · B: original text advance / mock back · Esc: close · X: menu · B + Running Shoes: run (shoes not owned in this preview)</p>
+<div class="mobile-controls"><div class="dpad"><button data-key="ArrowUp" class="up" aria-label="Move north">↑</button><button data-key="ArrowLeft" class="left" aria-label="Move west">←</button><button data-key="ArrowDown" class="down" aria-label="Move south">↓</button><button data-key="ArrowRight" class="right" aria-label="Move east">→</button></div><button id="touch-interact">A</button></div>
+<aside id="notebook-panel" hidden aria-label="Prototype task menu"><h2>Prototype task menu</h2><p>Added mock tasks, not the original game menu. Nothing is sent externally.</p><div class="progress-heading">Getting acquainted <b id="progress-count">0 / 3</b></div><div class="progress-track"><span id="progress-bar"></span></div><ul class="checklist"><li id="goal-houses">Visit four houses <b id="house-count">0/4</b></li><li id="goal-meet">Meet four agents <b id="meet-count">0/4</b></li><li id="goal-task">Try a sample <b id="task-count">0/1</b></li></ul><div id="resident-list"></div><h3>Notebook <small id="task-total">0 NOTES</small></h3><div id="task-list"></div></aside>
+<details class="limitations"><summary>Reference and verification limits</summary><p>The upper screen scrolls over the world. Both screen surfaces use the 256:192 DS aspect ratio at 2× rendering size. The ordinary no-Poketch lower background now uses original indexed tile, screen-map and palette inputs with native 2D color and brightness conversion, rather than the compressed-video crop. Generated NCGR byte equivalence and original display parity are unverified. Dialogue font, frame and continuation-arrow pixels now derive from original source assets. Eight unconditional human actors use source-authored dialogue controls in an explicit early-branch demo state; conditional story actors are excluded. Mock-helper pagination and added choice layout are adaptations. Selected door/pond/TV source animations, door camera phases and integer fades are now integrated, but display phase and exact visual parity are unverified.</p><p>Music is derived from the supplied original Twinleaf Town (Day) reference. Its numerical loop candidate has not been audibly verified. The player and four Pokémon use decoded original sprite frames. Scenes now render native source meshes with decoded outdoor perspective and indoor orthographic cameras. Source billboard geometry, projection-depth bias and event transforms are applied. The app uses an explicit integer native-polygon path with verified lighting tables at a fixed-time preview (noon by default). Source-byte gates admit the supported actors, exact door/camera samples and pond/TV states. Integer diffuse/specular RGB5 lighting follows the supplied pinned melonDS reference. Source task timing, browser performance and original hardware/display parity remain unverified. Added helper render positions are rounded to FX12 without changing their simulation or collision state. Animation timing and collision interpretation still need validation. Sign/mailbox models now use source-verified event resources. Audio enables original reference music and source-derived effects in the recording graph only. The graph has no connection to live speakers. Effect hardware parity and trigger timing are unverified.</p><p>Recording is development-only and user-initiated. It captures this canvas and this app’s actual audio graph to WebM where supported, with no microphone, external mux, upload or permission change. Compatibility and recorded playback require real-browser checks.</p></details>
+</main><script src="source-world-data.js" data-boot-dependency></script><script src="world.js" data-boot-dependency></script><script src="native-sprites.js" data-boot-dependency></script><script src="source-images.js" data-boot-dependency></script><script src="native-lower-screen-data.js" data-boot-dependency></script><script src="native-lower-screen.js" data-boot-dependency></script><script src="presentation.js" data-boot-dependency></script><script src="resident-cards.js" data-boot-dependency></script><script src="assets/reference-audio.js" data-boot-dependency></script><script src="field-ui-data.js" data-boot-dependency></script><script src="field-text.js" data-boot-dependency></script><script src="map-name-popup-data.js" data-boot-dependency></script><script src="map-name-popup.js" data-boot-dependency></script><script src="event-images.js" data-boot-dependency></script><script src="effect-data.js" data-boot-dependency></script><script src="source-effect-data.js" data-boot-dependency></script><script src="field-effects.js" data-boot-dependency></script><script src="text-reveal.js" data-boot-dependency></script><script src="source-data.js" data-boot-dependency></script><script src="source-lighting.js" data-boot-dependency></script>
+  <script src="source-renderer.js" data-boot-dependency></script>
+  <script src="source-native-bytes.js" data-boot-dependency></script>
+  <script src="source-exit-indicator-data.js" data-boot-dependency></script>
+  <script src="source-native-player-cache.js" data-boot-dependency></script>
+  <script src="source-exit-indicator.js" data-boot-dependency></script>
+  <script src="source-exit-indicator-native.js" data-boot-dependency></script>
+
+  <script src="source-exclamation-data.js" data-boot-dependency></script>
+  <script src="source-exclamation.js" data-boot-dependency></script>
+  <script src="source-exclamation-native.js" data-boot-dependency></script>
+  <script src="source-native-ortho.js" data-boot-dependency></script>
+  <script src="source-native-actor-audit.js" data-boot-dependency></script>
+  <script src="source-native-perspective-audit.js" data-boot-dependency></script>
+  <script src="source-native-pond-audit.js" data-boot-dependency></script>
+  <script src="source-native-animation-audit.js" data-boot-dependency></script>
+  <script src="source-native-neighbor-data.js" data-boot-dependency></script>
+  <script src="source-native-neighbor-audit.js" data-boot-dependency></script>
+  <script src="source-native-sea-data.js" data-boot-dependency></script>
+  <script src="source-native-sea-audit.js" data-boot-dependency></script>
+  <script src="source-native-neighbor-loader.js" data-boot-dependency></script>
+  <script src="source-native-area-animation-data.js" data-boot-dependency></script>
+  <script src="source-native-area-animation-audit.js" data-boot-dependency></script>
+  <script src="source-native-area-animation.js" data-boot-dependency></script>
+  <script src="source-native-field-lifecycle.js" data-boot-dependency></script>
+  <script src="native-browser-gates-assets.js" data-boot-dependency></script>
+  <script src="source-native-host.js" data-boot-dependency></script>
+  <script src="source-cpu-renderer.js" data-boot-dependency></script><script src="original-people-data.js" data-boot-dependency></script><script src="world-animation-data.js" data-boot-dependency></script><script src="world-animation.js" data-boot-dependency></script><script src="lighting-preview.js" data-boot-dependency></script><script src="player-motion.js" data-boot-dependency></script><script src="player-collision.js" data-boot-dependency></script><script src="source-warp-phases.js" data-boot-dependency></script><script src="source-warp.js" data-boot-dependency></script><script src="source-staircase-data.js" data-boot-dependency></script><script src="source-staircase.js" data-boot-dependency></script><script src="source-staircase-height-data.js" data-boot-dependency></script><script src="source-staircase-height.js" data-boot-dependency></script><script src="original-motion.js" data-boot-dependency></script><script src="original-people.js" data-boot-dependency></script><script src="original-dialogue.js" data-boot-dependency></script>
+  <script src="dialogue-data.js" data-boot-dependency></script>
+  <script src="dialogue-integration.js" data-boot-dependency></script>
+  <script src="source-board-data.js" data-boot-dependency></script>
+  <script src="source-board-selector.js" data-boot-dependency></script>
+  <script src="source-board-text.js" data-boot-dependency></script>
+  <script src="source-board-consumer.js" data-boot-dependency></script>
+  <script src="source-board-input.js" data-boot-dependency></script>
+  <script src="source-board-controller.js" data-boot-dependency></script>
+  <script src="source-board-field-sequence.js" data-boot-dependency></script>
+  <script src="source-board-assets.js" data-boot-dependency></script>
+  <script src="source-board-raster.js" data-boot-dependency></script>
+  <script src="source-board-entry.js" data-boot-dependency></script>
+  <script src="source-board-host.js" data-boot-dependency></script>
+  <script src="source-menu-art-data.js" data-boot-dependency></script>
+  <script src="source-menu-art.js" data-boot-dependency></script>
+  <script src="source-options-art-data.js" data-boot-dependency></script>
+  <script src="source-options-art.js" data-boot-dependency></script>
+  <script src="source-options.js" data-boot-dependency></script>
+  <script src="source-field-menu.js" data-boot-dependency></script>
+  <script src="source-tv-data.js" data-boot-dependency></script>
+<script src="source-default-music-data.js" data-boot-dependency></script>
+  <script src="source-rival-audio-data.js" data-boot-dependency></script>
+<script src="source-tv-stream.js" data-boot-dependency></script>
+  <script src="source-effect-voices.js" data-boot-dependency></script>
+  <script src="source-effect-sequence.js" data-boot-dependency></script>
+  <script src="source-effect-carriers.js" data-boot-dependency></script>
+  <script src="source-tv-sound.js" data-boot-dependency></script>
+  <script src="source-tv-script-data.js" data-boot-dependency></script>
+  <script src="source-tv-script.js" data-boot-dependency></script>
+  <script src="source-intro-tv-data.js" data-boot-dependency></script>
+  <script src="source-intro-tv-art.js" data-boot-dependency></script>
+  <script src="source-intro-tv.js" data-boot-dependency></script>
+  <script src="source-home-script-data.js" data-boot-dependency></script>
+  <script src="source-reference-dialogue-data.js" data-boot-dependency></script>
+  <script src="source-direct-talk.js" data-boot-dependency></script>
+  <script src="source-home-scripts.js" data-boot-dependency></script>
+  <script src="source-field-effect-transaction.js" data-boot-dependency></script>
+  <script src="source-tv-runtime.js" data-boot-dependency></script><script src="source-rival-script-data.js" data-boot-dependency></script>
+<script src="source-rival-scripts.js" data-boot-dependency></script>
+<script src="browser-recording-target.js" data-boot-dependency></script><script src="bounded-recording.js" data-boot-dependency></script><script src="native-recording-bridge.js" data-boot-dependency></script><script src="game.js" data-boot-entry></script></body></html>
