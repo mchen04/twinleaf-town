@@ -79,7 +79,7 @@ function reset() {
   nativePlayerHeight=null;nativeHeightProfile=Object.freeze({heightDispatch:0,ignoreHeights:false,dynamicRegistryActive:false});
   const nextState=freshState(),nextField=window.SourceNativeFieldLifecycle?window.SourceNativeFieldLifecycle.create({header:411,tile:[nextState.player.x,nextState.player.y],generation:fieldGeneration+1,profile:'ordinary-no-poketch'}):null;if(nextField){if(nativeFieldLifecycle)nativeFieldLifecycle.invalidate();nativeFieldLifecycle=nextField;fieldGeneration++;fieldView=null;lastNativeFrame=null;areaTextureHashes=Object.create(null);}worldAnimation.reset(411);originalMotion=O.createMotion({seed:0});logicAccumulator=0;resetPresentationPending=true;resetElapsedCaptured=!nativeRenderer;state=nextState;sceneSnapshot=null;cameraFrame=0;if(nativeRenderer)nativeRenderer.resetCamera(411,worldPosition(state.player));keys.clear();closeDialog();updateUI();
   $('location-name').textContent='Twinleaf Town'; $('location-note').textContent='A place to begin';
-  $('scene-tag').innerHTML='TWINLEAF TOWN <span>4 Fable 5.2 helpers · 8 Fable 5.2 residents</span>';
+  $('scene-tag').innerHTML='TWINLEAF TOWN <span>Fable 5.1 · 5 Codex sessions · 8 residents</span>';
   if((rebindStartup||rebindRetained)&&rendererInitOwner===startupOwner&&rendererInitGeneration===startupOwner.generation){startupOwner.state=state;startupOwner.fieldGeneration=fieldGeneration;}
   showToast('A fresh morning. Walk up to a door or a neighbor and press E.');
 }
@@ -737,7 +737,7 @@ function restoreDefaultProfile(saved){
  ({state,nativeRenderer,nativeFieldLifecycle,fieldGeneration,fieldView,lastNativeFrame,areaTextureHashes,nativePlayerHeight,nativeHeightProfile,worldAnimation,originalMotion,mapNamePopup,lightingPreview,sceneSnapshot,cameraFrame,logicAccumulator,resetPresentationPending,resetElapsedCaptured,menuOpen,toastUntil}=saved);
  nativeRenderReady=true;nativeRecoveryNeedsDraw=false;rendererError=null;suspendedNativeRenderer=null;
  $('location-name').textContent=saved.locationName;$('location-note').textContent=saved.locationNote;
- $('scene-tag').innerHTML='TWINLEAF TOWN <span>4 Fable 5.2 helpers · 8 Fable 5.2 residents</span>';
+ $('scene-tag').innerHTML='TWINLEAF TOWN <span>Fable 5.1 · 5 Codex sessions · 8 residents</span>';
  $('notebook-panel').hidden=!menuOpen;$('menu-button').setAttribute('aria-expanded',String(menuOpen));$('lighting-time').value=lightingPreview.snapshot().value;
  keys.clear();sourceBoardEdges.reset();dialogHeldKeys.clear();updateUI();
 }
@@ -1072,11 +1072,18 @@ function drawLowerScreen(){
  }
  screen.drawImage(cached.surface,0,384,512,384);
  if(menuOpen){
-  screen.fillStyle='#e7edf1';screen.fillRect(10,397,492,357);screen.fillStyle='#344760';screen.fillRect(14,401,484,27);screenText('FABLE 5.2 SESSIONS',25,420,15,'#fff');
-  screenText('Houses '+state.visited.size+'/4   Sessions met '+state.met.size+'/4',25,450,14,'#506077');
-  W.houses.forEach((h,i)=>{const task=state.tasks.find(t=>t.id===h.id),status=task?task.status:state.npcs.find(n=>n.id===h.id).location==='interior'?'idle · indoors':'idle · on a walk';screenText(h.resident+'  '+status,25,476+i*24,16);});
-  const task=state.tasks[state.tasks.length-1];if(task){const h=W.getHouse(task.id);screenText(h.task,25,584,15,'#33475b');const content=task.status==='ready'?h.result:'Fable 5.2 session: '+task.status;wrapScreen(content,455,14).slice(0,7).forEach((line,i)=>screenText(line,25,609+i*19,14));}
-  screenText('X: close · four sessions, zero meetings',25,743,11,'#67768b');
+  screen.fillStyle='#e7edf1';screen.fillRect(10,397,492,357);screen.fillStyle='#344760';screen.fillRect(14,401,484,27);screenText('FABLE 5.1 · ORCHESTRATING '+W.sessions.length+' CODEX SESSIONS',25,420,15,'#fff');
+  W.sessions.forEach((s,i)=>{const y=456+i*58,total=s.minutes*60+s.seconds+Math.floor(state.clock),label=s.state==='running'?'running '+Math.floor(total/60)+'m '+String(total%60).padStart(2,'0')+'s':s.state;screen.fillStyle=s.color;screen.beginPath();screen.arc(31,y-5,5,0,Math.PI*2);screen.fill();screenText(s.name,44,y,16);screenText(s.project,150,y,14,'#506077');screenText(label,340,y,13,s.color);screenText(s.update,44,y+22,13,'#33475b');});
+  screenText('X: close',25,743,11,'#67768b');
+ }else if(state.dialog?.type==='original'&&W.playerLines[state.dialog.actorKey]){
+  const line=W.playerLines[state.dialog.actorKey];
+  if(state.dialog.promptStart===undefined&&state.originalPrinter?.snapshot().waiting==='page_clear')state.dialog.promptStart=state.clock;
+  if(state.dialog.promptStart!==undefined){
+   const typed=Math.min(line.length,Math.floor((state.clock-state.dialog.promptStart)*13)),done=typed===line.length;
+   screen.fillStyle='#e7edf1';screen.fillRect(10,612,492,128);screen.fillStyle='#344760';screen.fillRect(14,616,484,27);screenText('YOU · TYPING TO FABLE 5.1',25,635,15,'#fff');
+   screenText('> '+line.slice(0,typed)+(done?'':'_'),25,680,16);
+   if(done)screenText('sent',25,720,12,'#2f7d4f');
+  }
  }
 }
 // Source MASTER_BRIGHT darkening applies to native RGB6 before display expansion.
@@ -1552,7 +1559,7 @@ function openResident(id){
  const task=state.tasks.find(t=>t.id===id);
  let text=h.text;if(task)text=W.taskDialogView(task.status).text;
  openDialog(h.resident,h.role.toUpperCase(),text,h.resident[0],h.color);
- if(!task)action(h.task+' →',()=>startTask(id));else{const view=W.taskDialogView(task.status);const b=action(view.label,view.action==='result'?()=>showResult(id):()=>{});b.disabled=view.disabled;}
+ action(h.task+' →',()=>{state.dialog=null;closeDialog();if(!menuOpen)toggleMenu();});
  action('Just saying hello',closeDialog);updateUI();const first=$('dialog-actions').querySelector('button:not(:disabled)');focusDialogChoice(first);
 }
 function refreshOpenTaskDialog(){
@@ -1564,9 +1571,9 @@ function refreshOpenTaskDialog(){
 }
 function startTask(id){
  if(openingProfile||profileSwitchPending)return false;
- if(state.tasks.some(t=>t.id===id))return;state.tasks.push({id,start:Date.now(),status:'queued'});state.dialog=null;closeDialog();updateUI();showToast(W.getHouse(id).resident+' started a Fable 5.2 session.');
+ if(state.tasks.some(t=>t.id===id))return;state.tasks.push({id,start:Date.now(),status:'queued'});state.dialog=null;closeDialog();updateUI();showToast(W.getHouse(id).resident+' started a Fable 5.1 session.');
 }
-function showResult(id){if(openingProfile||profileSwitchPending)return false;const h=W.getHouse(id);state.dialog={type:'result',id};openDialog(h.task,'FABLE 5.2 REPORT · '+h.resident.toUpperCase(),h.result,h.resident[0],h.color);$('dialog-text').style.whiteSpace='pre-line';focusDialogChoice(action('Back to exploring',()=>{$('dialog-text').style.whiteSpace='normal';closeDialog();}));}
+function showResult(id){if(openingProfile||profileSwitchPending)return false;const h=W.getHouse(id);state.dialog={type:'result',id};openDialog(h.task,'FABLE 5.1 REPORT · '+h.resident.toUpperCase(),h.result,h.resident[0],h.color);$('dialog-text').style.whiteSpace='pre-line';focusDialogChoice(action('Back to exploring',()=>{$('dialog-text').style.whiteSpace='normal';closeDialog();}));}
 function createResidentCard(h){
  const card=document.createElement('button');
  card.className='resident-card';
@@ -1643,7 +1650,7 @@ function openingTownPlayerFirstVisit(boardInputBlocked,homeOwned){
 
 function update(dt){
  if((!nativeRenderer&&!openingProfile?.optionsSession)||profileSwitchPending||openingProfile?.faulted||openingProfile?.recovering)return;openingProfile?.tvRuntime?.preflight();cameraFrame++;state.clock+=dt;
- let changed=false;for(const task of state.tasks){const status=W.taskState(task.start,Date.now());if(status!==task.status){task.status=status;changed=true;if(status==='ready')showToast(W.getHouse(task.id).resident+' finished. Fable 5.2 verified it.');}}if(changed){updateUI();refreshOpenTaskDialog();}
+ let changed=false;for(const task of state.tasks){const status=W.taskState(task.start,Date.now());if(status!==task.status){task.status=status;changed=true;if(status==='ready')showToast(W.getHouse(task.id).resident+' finished. Fable 5.1 verified it.');}}if(changed){updateUI();refreshOpenTaskDialog();}
  if(state.clock>toastUntil)$('toast').hidden=true;
  // Field input and field-task callbacks precede model animation and scene draw.
  const tvOverlay=openingProfile?.tvRuntime?.isOverlay();

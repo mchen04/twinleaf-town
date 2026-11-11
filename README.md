@@ -1,8 +1,8 @@
 # Twinleaf Town
 
-A browser rebuild of Twinleaf Town from Pokémon Diamond and Pearl, where every resident is a Fable 5.2 coding session.
+A browser rebuild of Twinleaf Town from Pokémon Diamond and Pearl, where Fable 5.1 runs the town and orchestrates Codex sessions.
 
-![A walk through the town: a helper takes a job, a resident talks, and the session list shows the report](docs/demo.gif)
+![A walk through the town: Buneary shows the session list, then a resident refuses a correction](docs/demo.gif)
 
 [Watch the demo as MP4](docs/demo.mp4)
 
@@ -29,9 +29,9 @@ Hold E to make text print faster.
 
 ## What you can do
 
-- **Give a helper a job.** Four Pokémon walk between the houses. Each one is a session with one job: fix the flaky test, build the feature, review the PR, write the report. Talk to one, choose the job, and keep walking.
-- **Read the report.** Press X. The lower screen lists the four sessions, their status, and the last report.
-- **Talk to the residents.** Eight people live in the town and its houses. Each one has something to say about being a Fable 5.2 session.
+- **Check your sessions.** Buneary is Fable 5.1, the orchestrator. Talk to it and choose "Check my sessions", or press X. The lower screen lists the Codex sessions it runs, each with a one-line update.
+- **Meet the sessions.** Pikachu, Psyduck and Pachirisu walk between the houses. Each one is a Codex session and tells you what it is doing.
+- **Correct a resident.** Eight people live in the town and its houses. Each one tells you its current task. Your correction types itself on the lower screen. The resident does not take it well.
 
 Every line is hardcoded. The game calls no model and sends nothing out of the browser.
 
@@ -39,11 +39,12 @@ Every line is hardcoded. The game calls no model and sends nothing out of the br
 
 | What | Where |
 | --- | --- |
-| Helper names, jobs, greetings and reports | `houses` in `game/world.js` |
-| Helper progress and done lines | `taskDialogView` in `game/world.js` |
+| Helper names, roles and greetings | `houses` in `game/world.js` |
+| The session list | `sessions` in `game/world.js` |
+| What you type to each resident | `playerLines` in `game/world.js` |
 | Resident lines | `messages[].tokens` in `game/dialogue-data.js` |
 
-Resident lines use the game font and the original text box. A line holds 216 pixels, which is about 36 characters. A page holds two lines. Use `’` for an apostrophe, because the font has no straight quote.
+Resident lines use the game font and the original text box. A line holds 216 pixels, which is about 36 characters. A page holds two lines. The first page is the task and the second page is the answer. Use `’` for an apostrophe, because the font has no straight quote.
 
 ## How it works
 
@@ -51,7 +52,7 @@ The game is plain JavaScript on one canvas. The canvas is 512 by 768 pixels and 
 
 - `game/game.js` runs the loop, input, dialogue and the session list.
 - `game/source-cpu-renderer.js` draws the town in software from the map data in `game/source-data.js`.
-- `game/world.js` holds the helpers and their jobs.
+- `game/world.js` holds the helpers, the session list and the typed lines.
 - `game/original-dialogue.js` prints resident text one glyph at a time.
 
 Art, fonts and sound data are embedded in the script files, so the folder works offline. The recording of the town theme is not included, so the music track is silent.
